@@ -79,6 +79,7 @@
       <tbody id="workerTableBody"></tbody>
     </table>
     <button class="btn btn-success" onclick="showForm()">Add Entry</button>
+    <button class="btn btn-warning" onclick="downloadWorkerExcel()">Download as Excel</button>
     <button class="btn btn-secondary" onclick="goHome()">Logout</button>
   </div>
 
@@ -117,6 +118,7 @@
         </select>
       </div>
       <button type="submit" class="btn btn-success">Submit</button>
+      <button class="btn btn-warning mt-2" onclick="downloadWorkerExcel()">Download as Excel</button>
       <button class="btn btn-secondary" type="button" onclick="backToWorker()">Cancel</button>
     </form>
   </div>
@@ -223,10 +225,15 @@
       backToWorker();
     } 
     
-function showWorkerEntries() {
+function showWorkerEntries(filtered = null) {
   const body = document.getElementById('workerTableBody');
   body.innerHTML = '';
-  entries.forEach((entry, i) => {
+  const dataToShow = filtered || entries;
+
+  // Store for Excel download
+  window.lastFilteredWorkerEntries = dataToShow;
+
+  dataToShow.forEach((entry, i) => {
     const isEditable = entry.status !== 'Approved';
     const row = `<tr>
       <td>${entry.date}</td>
@@ -242,6 +249,7 @@ function showWorkerEntries() {
     body.innerHTML += row;
   });
 }
+
 function editEntry(index) {
   const entry = entries[index];
   document.getElementById('role').value = entry.role;
@@ -277,7 +285,7 @@ function applyFilters() {
   if (rangeValue) {
     const dates = rangeValue.split(" to ");
     fromDate = new Date(dates[0]);
-    toDate = dates[1] ? new Date(dates[1]) : fromDate; // If only one date, treat as single day
+    toDate = dates[1] ? new Date(dates[1]) : fromDate;
   }
 
   const filtered = entries.filter(entry => {
@@ -294,6 +302,31 @@ function applyFilters() {
 
   showWorkerEntries(filtered);
 }
+function downloadWorkerExcel() {
+  const dataToExport = window.lastFilteredWorkerEntries || entries;
+
+  if (dataToExport.length === 0) {
+    alert("No data available to export.");
+    return;
+  }
+
+  const worksheetData = dataToExport.map(e => ({
+    "Project Title": e.projectTitle,
+    "Role": e.role,
+    "Date": e.date,
+    "Hours Worked": e.hours,
+    "Work Status": e.workStatus,
+    "Description": e.description,
+    "Approval Status": e.status
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Worker Logs");
+
+  XLSX.writeFile(workbook, "Worker_Time_Logs.xlsx");
+}
+
 
 function showManagerEntries() {
   const body = document.getElementById('managerTableBody');
